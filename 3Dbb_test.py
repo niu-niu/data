@@ -2,7 +2,7 @@
 import json
 import os
 import numpy as np
-import geometry as geo
+import geometry as geo  #pygeogmetry
 import cv2 as cv
 
 class CameraModel:
@@ -75,38 +75,31 @@ if __name__ == '__main__':
 
     print("vfov:", cams[0].vfov)
     print("fy:",cams[0].fy)
-    fridge_c = np.array([-1865.811, 476.8019, 902.35, 1.0])
+    fridge_c = np.array([-1865.811, 476.8019,902.35, 1.0])
     P_c = np.dot(cams[0].pose,fridge_c)
     print("Pc:", P_c)
 
-    
     cams_model_pad = np.pad(cams[0].model,((0,0),(0,1)),'constant',constant_values=(0,0))
     print("cams_model_pad:",cams_model_pad)
     P_uvz = np.dot(cams_model_pad,P_c)
-    P_uv = P_uvz/P_c[2]
+    Z = np.sqrt(np.sum(P_c)**2)
+    print("Z:",Z)
+    P_uv_tmp = P_uvz/Z
+    P_uv = P_uv_tmp/P_uv_tmp[2]
     print("P_uv:",P_uv)
     print("------------------------------------------------")
-
 
     img_rgb = cv.imread("Traj_0_0_rgb.jpg")
     img_depth = cv.imread("Traj_0_0_depth.png")
     cv.circle(img_rgb,(int(P_uv[0]),int(P_uv[1])),5,(0,255,0),1)
     cv.imwrite("test.jpg", img_rgb)
 
+
+
     rvec = cams[0].R
     print("cam pose:", cams[0].pose)
     tvec = np.array([cams[0].pose[0][3],cams[0].pose[1][3],cams[0].pose[2][3]])
     print("tvec:",tvec)
-    cube = np.float64([[-1865.811,476.8,902.35],])
+    cube = np.float64([[-1865.811, 476.8019,902.35],])
     result, _ = cv.projectPoints(cube, rvec, tvec, cams[0].model, 0)
-    print("3D to 2D：", result)
-
-
-    # print(cams[0].summary())
-    # print(rooms[0].floor_polygon())
-
-    # with open("HOUSE2.json", 'r') as f:
-    #     data = json.load(f)
-    #     ins_data = data[6:-1]
-    #     fridge_data = ins_data[1]
-    #     print('fridge_data',fridge_data)
+    print("P_uv opencv 3D to 2D：", result)
