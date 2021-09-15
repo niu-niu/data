@@ -75,8 +75,25 @@ if __name__ == '__main__':
 
     print("vfov:", cams[0].vfov)
     print("fy:",cams[0].fy)
+    transform = np.array([-4.371139e-08, -1.0, 0.0, -1865.811, 1.0, -4.371139e-08, 0.0, 476.8019, 0.0, 0.0, 1.0, 902.35, 0.0, 0.0, 0.0, 1.0])
+    # transform = np.array([-3.1666197e-08, 2.0, 0.0, -2332.795, -0.72443813, -8.742278e-08, 0.0, -3705.678, 0.0, 0.0, 0.85714287, 1500.0, 0.0, 0.0, 0.0, 1.0])
+    scale_x_v = [transform[idx] for idx in [0,4,8]]
+    scale_y_v = [transform[idx] for idx in [1,5,9]]
+    scale_z_v = [transform[idx] for idx in [2,6,10]]
+    scale_x = np.linalg.norm(scale_x_v)
+    scale_y = np.linalg.norm(scale_y_v)
+    scale_z = np.linalg.norm(scale_z_v)
+    print(scale_x_v,scale_y_v,scale_z_v)
+    print(scale_x,scale_y,scale_z)
+    instance_scale = np.array([scale_x,scale_y,scale_z])
+    tmp = np.array([scale_x_v,scale_y_v,scale_z_v]).transpose()
+    instance_rotation_base = np.array([transform[idx] for idx in [0,1,2,4,5,6,8,9,10]])
+    instance_rotation = np.divide(instance_rotation_base.reshape(3,3),tmp)
+    print(instance_scale,instance_rotation)
+
 
     fridge_c = np.array([-1865.811, 476.8019,902.35])*0.001
+    
     Pw_t = fridge_c - cams[0].position
     print("fridge,pwt",fridge_c,Pw_t)
     P_c = np.dot(np.linalg.inv(cams[0].R), Pw_t)
