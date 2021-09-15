@@ -5,6 +5,7 @@ import numpy as np
 import geometry as geo  #pygeogmetry
 import cv2 as cv
 
+g = 4
 class CameraModel:
     def __init__(self, fx, fy, cx, cy):
         self.fx = fx
@@ -62,7 +63,7 @@ def load_kjl(kjl_top):
         print("position:",structure[0]['camera_meta'][0]['camera_position'])
         print("look at :",structure[0]['camera_meta'][0]['camera_look_at'])
         cams = [Camera(c) for c in structure[0]['camera_meta']]
-        print("cam position:",cams[0].position)
+        print("cam position:",cams[g].position)
         rooms = [Room(r) for r in structure[1]['room_meta']]
         rgb_files = [os.path.abspath(os.path.join(kjl_top, 'render', cam.id, 'rgb.jpg')) for cam in cams]
         depth_files = [os.path.abspath(os.path.join(kjl_top, 'rasterize', cam.id, 'depth.png')) for cam in cams]
@@ -73,8 +74,8 @@ def load_kjl(kjl_top):
 if __name__ == '__main__':
     cams,_,_,_,_,rooms = load_kjl('.')
 
-    print("vfov:", cams[0].vfov)
-    print("fy:",cams[0].fy)
+    print("vfov:", cams[g].vfov)
+    print("fy:",cams[g].fy)
     transform = np.array([-4.371139e-08, -1.0, 0.0, -1865.811, 1.0, -4.371139e-08, 0.0, 476.8019, 0.0, 0.0, 1.0, 902.35, 0.0, 0.0, 0.0, 1.0])
     # transform = np.array([-3.1666197e-08, 2.0, 0.0, -2332.795, -0.72443813, -8.742278e-08, 0.0, -3705.678, 0.0, 0.0, 0.85714287, 1500.0, 0.0, 0.0, 0.0, 1.0])
     scale_x_v = [transform[idx] for idx in [0,4,8]]
@@ -96,16 +97,14 @@ if __name__ == '__main__':
     img_rgb = cv.imread("Traj_0_0_rgb.jpg")
     img_depth = cv.imread("Traj_0_0_depth.png")
 
-    
-    
     def compute_projection(Pw):
-        Pw_t = Pw - cams[0].position
-        print("fridge,pwt",Pw,Pw_t)
-        P_c = np.dot(np.linalg.inv(cams[0].R), Pw_t)
-        print("P_c",P_c)
-        P_uv = np.dot(cams[0].model, P_c)/P_c[2]
-        print("P_uv:",P_uv)
-        print("------------------------------------------------")
+        Pw_t = Pw - cams[g].position
+        # print("Pw,pwt",Pw,Pw_t)
+        P_c = np.dot(np.linalg.inv(cams[g].R), Pw_t)
+        # print("P_c",P_c)
+        P_uv = np.dot(cams[g].model, P_c)/P_c[2]
+        # print("P_uv:",P_uv)
+        # print("------------------------------------------------")
         cv.circle(img_rgb,(int(P_uv[0]),int(P_uv[1])),2,(0,0,255),2)
         return P_uv
     
@@ -116,25 +115,27 @@ if __name__ == '__main__':
         output = np.array((add,mins)).T
         print("center:",instance_center_p)
         print("size:", instance_size)
-        print("OUTPUT:",output)
+        # print("OUTPUT:",output)
 
-        combinations = np.array([(x,y,z) for x in output[0] for y in output[1] for z in output[2]])
-        print(combinations)
-        return combinations
+        ws_bbox = np.array([(x,y,z) for x in output[0] for y in output[1] for z in output[2]])
+        print("ws_bbox",ws_bbox.tolist())
+        return ws_bbox
 
-    ins_center = np.float64( [492.3178, -1904.8705, 495.473])
+    ins_center = np.float64([-1865.811, 476.8019, 902.35])
     P_list = bbox(ins_center, np.float64(instance_size))
     uv_list = []
     for i in P_list:
-        print("ins point:",i)
-        i = i * 0.001
+        # print("ins point:",i)
+        i = i * np.array([0.001])
         p_uv = compute_projection(i)
-        uv_list.append(p_uv)
+        uv_list.append(p_uv.tolist())
+    
+    print("uv:",uv_list)
 
     for l in uv_list:
         for m in uv_list:
             pass
-            # cv.line(img_rgb, (int(l[0]), int(l[1])), (int(m[0]), int(m[1])), (0,0,225), 1, 1)
+            cv.line(img_rgb, (int(l[0]), int(l[1])), (int(m[0]), int(m[1])), (0,0,225), 1, 1)
 
     # compute_projection(ins_center)
-    cv.imwrite("test.jpg", img_rgb)
+    # cv.imwrite("test.jpg", img_rgb)
