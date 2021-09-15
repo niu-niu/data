@@ -87,46 +87,54 @@ if __name__ == '__main__':
     print(scale_x,scale_y,scale_z)
     instance_scale = np.array([scale_x,scale_y,scale_z])
     tmp = np.array([scale_x_v,scale_y_v,scale_z_v]).transpose()
+    # instance_size = [833.0, 693.968017578125, 1804.699951171875]
+    instance_size = [967.6290283203125,2155.5, 990.9459838867188]
     instance_rotation_base = np.array([transform[idx] for idx in [0,1,2,4,5,6,8,9,10]])
     instance_rotation = np.divide(instance_rotation_base.reshape(3,3),tmp)
-    print(instance_scale,instance_rotation)
-
-
-    fridge_c = np.array([-1865.811, 476.8019,902.35])*0.001
-    
-    Pw_t = fridge_c - cams[0].position
-    print("fridge,pwt",fridge_c,Pw_t)
-    P_c = np.dot(np.linalg.inv(cams[0].R), Pw_t)
-    print("P_c",P_c)
-    
-
-    P_uv = np.dot(cams[0].model, P_c)/P_c[2]
-    print("P_uv:",P_uv)
-
-    # P_c = np.dot(cams[0].pose,fridge_c)
-    # print("Pc:", P_c)
-
-    # cams_model_pad = np.pad(cams[0].model,((0,0),(0,1)),'constant',constant_values=(0,0))
-    # print("cams_model_pad:",cams_model_pad)
-    # P_uvz = np.dot(cams_model_pad,P_c)
-    # Z = np.sqrt(np.sum(P_c)**2)
-    # print("Z:",Z)
-    # P_uv_tmp = P_uvz/Z
-    # P_uv = P_uv_tmp/P_uv_tmp[2]
-    # print("P_uv:",P_uv)
-    print("------------------------------------------------")
+    print("info",instance_size,instance_scale)
 
     img_rgb = cv.imread("Traj_0_0_rgb.jpg")
     img_depth = cv.imread("Traj_0_0_depth.png")
-    cv.circle(img_rgb,(int(P_uv[0]),int(P_uv[1])),5,(0,255,0),1)
+
+    
+    
+    def compute_projection(Pw):
+        Pw_t = Pw - cams[0].position
+        print("fridge,pwt",Pw,Pw_t)
+        P_c = np.dot(np.linalg.inv(cams[0].R), Pw_t)
+        print("P_c",P_c)
+        P_uv = np.dot(cams[0].model, P_c)/P_c[2]
+        print("P_uv:",P_uv)
+        print("------------------------------------------------")
+        cv.circle(img_rgb,(int(P_uv[0]),int(P_uv[1])),2,(0,0,255),2)
+        return P_uv
+    
+    def bbox(instance_center_p,instance_size):
+        add = np.array([instance_center_p[i] + instance_size[i]/2 for i in [0,1,2]])
+        mins = np.array([int(instance_center_p[i] - instance_size[i]/2) for i in [0,1,2]])
+
+        output = np.array((add,mins)).T
+        print("center:",instance_center_p)
+        print("size:", instance_size)
+        print("OUTPUT:",output)
+
+        combinations = np.array([(x,y,z) for x in output[0] for y in output[1] for z in output[2]])
+        print(combinations)
+        return combinations
+
+    ins_center = np.float64( [492.3178, -1904.8705, 495.473])
+    P_list = bbox(ins_center, np.float64(instance_size))
+    uv_list = []
+    for i in P_list:
+        print("ins point:",i)
+        i = i * 0.001
+        p_uv = compute_projection(i)
+        uv_list.append(p_uv)
+
+    for l in uv_list:
+        for m in uv_list:
+            pass
+            # cv.line(img_rgb, (int(l[0]), int(l[1])), (int(m[0]), int(m[1])), (0,0,225), 1, 1)
+
+    # compute_projection(ins_center)
     cv.imwrite("test.jpg", img_rgb)
-
-
-
-    rvec = cams[0].R
-    print("cam pose:", cams[0].pose)
-    tvec = np.array([cams[0].pose[0][3],cams[0].pose[1][3],cams[0].pose[2][3]])
-    print("tvec:",tvec)
-    cube = np.float64([[-1865.811, 476.8019,902.35],])
-    result, _ = cv.projectPoints(cube, rvec, tvec, cams[0].model, 0)
-    print("P_uv opencv 3D to 2D：", result)
