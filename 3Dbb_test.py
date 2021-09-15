@@ -75,18 +75,28 @@ if __name__ == '__main__':
 
     print("vfov:", cams[0].vfov)
     print("fy:",cams[0].fy)
-    fridge_c = np.array([-1865.811, 476.8019,902.35, 1.0])
-    P_c = np.dot(cams[0].pose,fridge_c)
-    print("Pc:", P_c)
 
-    cams_model_pad = np.pad(cams[0].model,((0,0),(0,1)),'constant',constant_values=(0,0))
-    print("cams_model_pad:",cams_model_pad)
-    P_uvz = np.dot(cams_model_pad,P_c)
-    Z = np.sqrt(np.sum(P_c)**2)
-    print("Z:",Z)
-    P_uv_tmp = P_uvz/Z
-    P_uv = P_uv_tmp/P_uv_tmp[2]
+    fridge_c = np.array([-1865.811, 476.8019,902.35])*0.001
+    Pw_t = fridge_c - cams[0].position
+    print("fridge,pwt",fridge_c,Pw_t)
+    P_c = np.dot(np.linalg.inv(cams[0].R), Pw_t)
+    print("P_c",P_c)
+    
+
+    P_uv = np.dot(cams[0].model, P_c)/P_c[2]
     print("P_uv:",P_uv)
+
+    # P_c = np.dot(cams[0].pose,fridge_c)
+    # print("Pc:", P_c)
+
+    # cams_model_pad = np.pad(cams[0].model,((0,0),(0,1)),'constant',constant_values=(0,0))
+    # print("cams_model_pad:",cams_model_pad)
+    # P_uvz = np.dot(cams_model_pad,P_c)
+    # Z = np.sqrt(np.sum(P_c)**2)
+    # print("Z:",Z)
+    # P_uv_tmp = P_uvz/Z
+    # P_uv = P_uv_tmp/P_uv_tmp[2]
+    # print("P_uv:",P_uv)
     print("------------------------------------------------")
 
     img_rgb = cv.imread("Traj_0_0_rgb.jpg")
